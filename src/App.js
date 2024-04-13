@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 const tempMovieData = [
   {
@@ -50,9 +50,30 @@ const tempWatchedData = [
 const average = (arr) =>
   arr.reduce((acc, cur, i, arr) => acc + cur / arr.length, 0);
 
+const homePageMovie = 'batman';
+const API_ENDPOINT = `http://www.omdbapi.com/?s=$$$MOVIE_NAME$$$&apikey=c5283f98`;
 export default function App() {
   const [movies, setMovies] = useState(tempMovieData);
   const [watched, setWatched] = useState(tempWatchedData);
+
+  // using promises and then / catch syntax
+  // useEffect(() => {
+  //   fetch(API_ENDPOINT.replace('$$$MOVIE_NAME$$$', homePageMovie))
+  //     .then((response) => response.json())
+  //     .then((data) => setMovies(data.Search));
+  // }, []);
+
+  // using async/await
+  useEffect(() => {
+    (async () => {
+      const response = await fetch(
+        API_ENDPOINT.replace('$$$MOVIE_NAME$$$', homePageMovie)
+      );
+      const data = await response.json();
+      // console.log(data.Search);
+      setMovies(data.Search);
+    })();
+  }, []);
 
   return (
     <>
@@ -93,14 +114,17 @@ function Logo() {
 
 function SearchBar() {
   const [query, setQuery] = useState('');
+
   return (
-    <input
-      className="search"
-      type="text"
-      placeholder="Search movies..."
-      value={query}
-      onChange={(e) => setQuery(e.target.value)}
-    />
+    <form>
+      <input
+        className="search"
+        type="text"
+        placeholder="Search movies..."
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+      />
+    </form>
   );
 }
 
@@ -213,18 +237,18 @@ function WatchedItem({ movie }) {
   );
 }
 
-// function ListBox({ children }) {
-//   const [isOpen1, setIsOpen1] = useState(true);
+function ListBox({ children }) {
+  const [isOpen1, setIsOpen1] = useState(true);
 
-//   return (
-//     <div className="box">
-//       <button
-//         className="btn-toggle"
-//         onClick={() => setIsOpen1((open) => !open)}
-//       >
-//         {isOpen1 ? '–' : '+'}
-//       </button>
-//       {isOpen1 && children}
-//     </div>
-//   );
-// }
+  return (
+    <div className="box">
+      <button
+        className="btn-toggle"
+        onClick={() => setIsOpen1((open) => !open)}
+      >
+        {isOpen1 ? '–' : '+'}
+      </button>
+      {isOpen1 && children}
+    </div>
+  );
+}
