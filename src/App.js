@@ -58,12 +58,15 @@ export default function App() {
       return;
     }
 
+    const controller = new AbortController();
+
     (async () => {
       try {
         setIsLoading(true);
         setError('');
         const response = await fetch(
-          API_ENDPOINT.replace('$$$MOVIE_NAME$$$', query)
+          API_ENDPOINT.replace('$$$MOVIE_NAME$$$', query),
+          { signal: controller.signal }
         );
 
         if (!response.ok)
@@ -72,10 +75,13 @@ export default function App() {
         if (data.Response === 'False') throw new Error('Movie not found');
         setMovies(data.Search);
       } catch (err) {
-        setError(err.message);
+        // will see aborting the request as an exception
+        if (err.name !== 'AbortError') setError(err.message);
       }
       setIsLoading(false);
     })();
+
+    return () => controller.abort();
   }, [query]);
 
   return (
@@ -250,6 +256,14 @@ function MovieDetails({ selectedId, onCloseMovie, onAddToWatched, watched }) {
       }
     })();
   }, [selectedId]);
+
+  // Change the title of the page
+  useEffect(() => {
+    if (!title) return;
+    document.title = `Movie | ${title}`;
+    // cleanup function
+    return () => (document.title = 'usePopcorn');
+  }, [title]);
 
   return (
     <div className="details">
