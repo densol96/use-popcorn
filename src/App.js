@@ -135,7 +135,6 @@ function ErrorMessage({ msg }) {
 }
 
 function NavBar({ movies, children }) {
-  console.log(movies);
   return (
     <nav className="nav-bar">
       {children}
@@ -157,15 +156,13 @@ function Logo() {
 
 function SearchBar({ query, setQuery }) {
   return (
-    <form>
-      <input
-        className="search"
-        type="text"
-        placeholder="Search movies..."
-        value={query}
-        onChange={(e) => setQuery(e.target.value)}
-      />
-    </form>
+    <input
+      className="search"
+      type="text"
+      placeholder="Search movies..."
+      value={query}
+      onChange={(e) => setQuery(e.target.value)}
+    />
   );
 }
 
@@ -264,6 +261,15 @@ function MovieDetails({ selectedId, onCloseMovie, onAddToWatched, watched }) {
     // cleanup function
     return () => (document.title = 'usePopcorn');
   }, [title]);
+
+  // ESC keypress
+  useEffect(() => {
+    const callback = (e) => {
+      if (e.code === 'Escape') onCloseMovie();
+    };
+    document.addEventListener('keydown', callback);
+    return () => document.removeEventListener('keydown', callback);
+  }, [onCloseMovie]);
 
   return (
     <div className="details">
