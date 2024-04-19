@@ -40,8 +40,6 @@ export default function StarRating({
     gap: '16px',
   };
 
-  console.log(onSetRating);
-
   function handleClick(id) {
     if (rating === id && clicked) {
       setClicked(false);

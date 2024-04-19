@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import StarRating from './StarRating';
 
 const average = (arr) =>
@@ -9,11 +9,16 @@ const API_ENDPOINT_MOVIE = `http://www.omdbapi.com/?i=$$$MOVIE_NAME$$$&apikey=c5
 
 export default function App() {
   const [movies, setMovies] = useState([]);
-  const [watched, setWatched] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [query, setQuery] = useState('');
   const [selectedId, setSelectedId] = useState(null);
+
+  // const [watched, setWatched] = useState([]);
+  const [watched, setWatched] = useState(() => {
+    const storedWatchedList = localStorage.getItem('watched');
+    return storedWatchedList ? JSON.parse(storedWatchedList) : [];
+  });
 
   function handleSelectedId(id) {
     setSelectedId((selectedId) => (id === selectedId ? null : id));
@@ -32,9 +37,15 @@ export default function App() {
         duplicate = true;
       }
     });
+    // an use localStorage inside the event handler, or inside an effect for example
     setWatched((watched) => {
-      if (duplicate) return newWatchedList;
-      else return [...watched, movie];
+      if (duplicate) {
+        // localStorage.setItem('watched', JSON.stringify(newWatchedList));
+        return newWatchedList;
+      } else {
+        // localStorage.setItem('watched', JSON.stringify([...watched, movie]));
+        return [...watched, movie];
+      }
     });
   }
 
@@ -83,6 +94,11 @@ export default function App() {
 
     return () => controller.abort();
   }, [query]);
+
+  // save watched to localStorage ob every watched update
+  useEffect(() => {
+    localStorage.setItem('watched', JSON.stringify(watched));
+  }, [watched]);
 
   return (
     <>
@@ -155,6 +171,25 @@ function Logo() {
 }
 
 function SearchBar({ query, setQuery }) {
+  const inputElement = useRef(null);
+
+  useEffect(() => {
+    // on loading the component, immediately focus on the searchBar
+    inputElement.current.focus();
+
+    // also on enter press when not focused
+    function callback(e) {
+      if (
+        e.code === 'Enter' &&
+        document.activeElement !== inputElement.current
+      ) {
+        inputElement.current.focus();
+        setQuery('');
+      }
+    }
+    document.addEventListener('keypress', callback);
+  }, [setQuery]);
+
   return (
     <input
       className="search"
@@ -162,6 +197,7 @@ function SearchBar({ query, setQuery }) {
       placeholder="Search movies..."
       value={query}
       onChange={(e) => setQuery(e.target.value)}
+      ref={inputElement}
     />
   );
 }
