@@ -1,24 +1,28 @@
 import { useEffect, useState, useRef } from 'react';
-import StarRating from './StarRating';
+import StarRating from './StarRating.js';
+import { useMovies } from './useMovies.js';
+import { useLocalStorageState } from './useLocalStorageState.js';
+import { useKey } from './useKey.js';
 
 const average = (arr) =>
   arr.reduce((acc, cur, i, arr) => acc + cur / arr.length, 0);
 
-const API_ENDPOINT = `http://www.omdbapi.com/?s=$$$MOVIE_NAME$$$&apikey=c5283f98`;
 const API_ENDPOINT_MOVIE = `http://www.omdbapi.com/?i=$$$MOVIE_NAME$$$&apikey=c5283f98`;
 
 export default function App() {
-  const [movies, setMovies] = useState([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState('');
+  // MOVED TO THE CUSTOM HOOK
+  // const [movies, setMovies] = useState([]);
+  // const [isLoading, setIsLoading] = useState(false);
+  // const [error, setError] = useState('');
   const [query, setQuery] = useState('');
   const [selectedId, setSelectedId] = useState(null);
+  const { movies, isLoading, error } = useMovies(query);
+  const [watched, setWatched] = useLocalStorageState([], 'watched');
 
-  // const [watched, setWatched] = useState([]);
-  const [watched, setWatched] = useState(() => {
-    const storedWatchedList = localStorage.getItem('watched');
-    return storedWatchedList ? JSON.parse(storedWatchedList) : [];
-  });
+  // const [watched, setWatched] = useState(() => {
+  //   const storedWatchedList = localStorage.getItem('watched');
+  //   return storedWatchedList ? JSON.parse(storedWatchedList) : [];
+  // });
 
   function handleSelectedId(id) {
     setSelectedId((selectedId) => (id === selectedId ? null : id));
@@ -61,44 +65,6 @@ export default function App() {
   // }, []);
 
   // using async/await
-  useEffect(() => {
-    if (query.length < 3) {
-      setError('');
-      setIsLoading(false);
-      setMovies([]);
-      return;
-    }
-
-    const controller = new AbortController();
-
-    (async () => {
-      try {
-        setIsLoading(true);
-        setError('');
-        const response = await fetch(
-          API_ENDPOINT.replace('$$$MOVIE_NAME$$$', query),
-          { signal: controller.signal }
-        );
-
-        if (!response.ok)
-          throw new Error('Something went wrong with fetching the movies..');
-        const data = await response.json();
-        if (data.Response === 'False') throw new Error('Movie not found');
-        setMovies(data.Search);
-      } catch (err) {
-        // will see aborting the request as an exception
-        if (err.name !== 'AbortError') setError(err.message);
-      }
-      setIsLoading(false);
-    })();
-
-    return () => controller.abort();
-  }, [query]);
-
-  // save watched to localStorage ob every watched update
-  useEffect(() => {
-    localStorage.setItem('watched', JSON.stringify(watched));
-  }, [watched]);
 
   return (
     <>
@@ -173,22 +139,12 @@ function Logo() {
 function SearchBar({ query, setQuery }) {
   const inputElement = useRef(null);
 
-  useEffect(() => {
-    // on loading the component, immediately focus on the searchBar
-    inputElement.current.focus();
-
-    // also on enter press when not focused
-    function callback(e) {
-      if (
-        e.code === 'Enter' &&
-        document.activeElement !== inputElement.current
-      ) {
-        inputElement.current.focus();
-        setQuery('');
-      }
+  useKey('Enter', function () {
+    if (document.activeElement !== inputElement.current) {
+      inputElement.current.focus();
+      setQuery('');
     }
-    document.addEventListener('keypress', callback);
-  }, [setQuery]);
+  });
 
   return (
     <input
@@ -299,13 +255,7 @@ function MovieDetails({ selectedId, onCloseMovie, onAddToWatched, watched }) {
   }, [title]);
 
   // ESC keypress
-  useEffect(() => {
-    const callback = (e) => {
-      if (e.code === 'Escape') onCloseMovie();
-    };
-    document.addEventListener('keydown', callback);
-    return () => document.removeEventListener('keydown', callback);
-  }, [onCloseMovie]);
+  useKey('Escape', onCloseMovie);
 
   return (
     <div className="details">
